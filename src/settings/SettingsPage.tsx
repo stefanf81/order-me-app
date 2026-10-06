@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { ItemsSection, type ItemsSectionProps } from '../items/ItemsSection.tsx'
 import { AppVersion } from './AppVersion.tsx'
 import { GeneralSection, type GeneralSectionProps } from './GeneralSection.tsx'
@@ -9,8 +10,8 @@ interface SettingsPageProps {
   t: ItemsSectionProps['t']
 }
 
-/** The fourth swipe page: the Operator's Items (the Catalog), the General settings, then the app's version. */
-export function SettingsPage({ items, general, version, t }: SettingsPageProps) {
+/** The fourth swipe page: the Operator's Items (the Catalog), the General settings, then the app's version. Memoized, like History. */
+export const SettingsPage = memo(function SettingsPage({ items, general, version, t }: SettingsPageProps) {
   return (
     <section className="page" aria-labelledby="settings-page-title">
       <h1 className="page-title" id="settings-page-title">
@@ -21,4 +22,4 @@ export function SettingsPage({ items, general, version, t }: SettingsPageProps) 
       <AppVersion {...version} t={t} />
     </section>
   )
-}
+})

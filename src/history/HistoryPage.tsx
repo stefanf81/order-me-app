@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import type { Catalog } from '../items/catalog.ts'
 import type { Messages } from '../shared/i18n.ts'
 import type { Overlays } from '../shared/ui/overlays.ts'
@@ -19,11 +19,23 @@ interface HistoryPageProps {
   onOrderedAgain: () => void
 }
 
-/** Past Rounds by day, newest first. Everything shown comes from the placed snapshot, never the live Catalog. */
-export function HistoryPage({ history, catalog, dateLocale, t, actions, overlays, onOrderedAgain }: HistoryPageProps) {
+/**
+ * Past Rounds by day, newest first. Everything shown comes from the placed snapshot, never the live Catalog.
+ * Memoized: History grows without end, and a tap on the Round page must not re-render all of it.
+ */
+export const HistoryPage = memo(function HistoryPage({
+  history,
+  catalog,
+  dateLocale,
+  t,
+  actions,
+  overlays,
+  onOrderedAgain,
+}: HistoryPageProps) {
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const now = useToday()
-  const time = new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' })
+  const time = useMemo(() => new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }), [dateLocale])
+  const days = useMemo(() => groupByDay(history, now), [history, now])
 
   const dayLabel = ({ daysAgo, day }: HistoryDay) => {
     if (daysAgo === 0) return t.today
@@ -65,7 +77,7 @@ export function HistoryPage({ history, catalog, dateLocale, t, actions, overlays
 
       {history.length === 0 && <p className="page-empty">{t.historyEmpty}</p>}
 
-      {groupByDay(history, now).map((group) => (
+      {days.map((group) => (
         <section key={group.day.getTime()} className="section">
           <h2 className="section-label">{dayLabel(group)}</h2>
           {group.rounds.map((round) => {
@@ -123,4 +135,4 @@ export function HistoryPage({ history, catalog, dateLocale, t, actions, overlays
       ))}
     </section>
   )
-}
+})

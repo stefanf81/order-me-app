@@ -82,17 +82,41 @@ export function App() {
   const closeInstallGuide = useCallback(() => setInstallGuide(false), [])
   const closeToast = useCallback(() => setToast(null), [])
   const closeConfirmation = useCallback(() => setConfirmation(null), [])
+  const toRound = useCallback(() => setPage(ROUND_PAGE), [])
+  const dateLocale = formattingLocale(locale, navigator.language)
+
+  // Every page stays mounted (the Pager slides between them), so a tap re-renders all four unless their props stay
+  // the same. These objects only change when what they hold does: History and Settings skip taps on the Round.
+  const settingsItems = useMemo(
+    () => ({
+      sections: catalogSections(catalog, state.pins),
+      pins: state.pins,
+      count: catalog.length,
+      actions,
+      overlays,
+      onAdd: () => setSheet({}),
+      onShare: () => setSharing('items'),
+      onEdit: (item: Item) => setSheet({ item }),
+    }),
+    [catalog, state.pins, actions, overlays],
+  )
+  const hasHistory = state.history.length > 0
+  const settingsGeneral = useMemo(
+    () => ({ settings: state.settings, hasHistory, actions, overlays, onInstallGuide: () => setInstallGuide(true) }),
+    [state.settings, hasHistory, actions, overlays],
+  )
+  const settingsVersion = useMemo(() => ({ dateLocale, updateReady, onUpdate: update }), [dateLocale, updateReady, update])
 
   const pages = [
     <HistoryPage
       key="history"
       history={state.history}
       catalog={catalog}
-      dateLocale={formattingLocale(locale, navigator.language)}
+      dateLocale={dateLocale}
       t={t}
       actions={actions}
       overlays={overlays}
-      onOrderedAgain={() => setPage(ROUND_PAGE)}
+      onOrderedAgain={toRound}
     />,
     <RoundPage
       key="round"
@@ -113,30 +137,15 @@ export function App() {
       actions={actions}
       onPlace={placeRound}
       overlays={overlays}
-      onGoToRound={() => setPage(ROUND_PAGE)}
+      onGoToRound={toRound}
       onShare={() => setSharing('round')}
     />,
     <SettingsPage
       key="settings"
       t={t}
-      items={{
-        sections: catalogSections(catalog, state.pins),
-        pins: state.pins,
-        count: catalog.length,
-        actions,
-        overlays,
-        onAdd: () => setSheet({}),
-        onShare: () => setSharing('items'),
-        onEdit: (item) => setSheet({ item }),
-      }}
-      general={{
-        settings: state.settings,
-        hasHistory: state.history.length > 0,
-        actions,
-        overlays,
-        onInstallGuide: () => setInstallGuide(true),
-      }}
-      version={{ dateLocale: formattingLocale(locale, navigator.language), updateReady, onUpdate: update }}
+      items={settingsItems}
+      general={settingsGeneral}
+      version={settingsVersion}
     />,
   ]
 

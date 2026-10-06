@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import type { Sections } from '../items/catalog.ts'
 import { roundLines, totalOf, type ComposingRound } from '../round/round.ts'
 import type { Messages } from '../shared/i18n.ts'
@@ -48,16 +48,21 @@ function fitName(el: HTMLElement) {
  * as ordered. A swipe page between Round and Items; Clear lives on the Round page only.
  */
 export function ShowPage({ round, sections, active, t, actions, onPlace, overlays, onGoToRound, onShare }: ShowPageProps) {
-  const lines = roundLines(round, sections)
+  const lines = useMemo(() => roundLines(round, sections), [round, sections])
   const total = totalOf(round)
   const bodyRef = useRef<HTMLDivElement>(null)
+  /** What the line widths depend on: the names, and the counts beside them. Typing a remark changes neither. */
+  const fitKey = lines.map(({ item, count }) => `${item.id}\t${item.name}\t${count}`).join('\n')
 
+  // Fitting measures every line, which forces a layout: only on the page on screen, and only when a line changed.
+  // The Round page re-renders this page on every tap; off screen, it is fitted on arrival instead.
   useLayoutEffect(() => {
+    if (!active) return
     const fitAll = () => bodyRef.current?.querySelectorAll<HTMLElement>('.show-what').forEach(fitName)
     fitAll()
     window.addEventListener('resize', fitAll)
     return () => window.removeEventListener('resize', fitAll)
-  }, [lines])
+  }, [active, fitKey])
 
   // The screen stays on while the bartender reads it, and may sleep once the Operator swipes away.
   useEffect(() => (active ? keepScreenAwake(browserHost()) : undefined), [active])

@@ -58,8 +58,8 @@ export function RoundPage({ sections, round, t, actions, onShow, onNew, overlays
               count={count}
               label={t.tileLabel(item.name, count)}
               removeLabel={t.removeOne(item.name)}
-              onAdd={() => actions.addToRound(item.id)}
-              onRemove={() => actions.removeFromRound(item.id)}
+              onAdd={actions.addToRound}
+              onRemove={actions.removeFromRound}
             />
           )
         })}

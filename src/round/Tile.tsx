@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties } from 'react'
+import { memo, useMemo, type CSSProperties } from 'react'
 import type { Item } from '../items/catalog.ts'
 import { emojiColour } from './emojiColour.ts'
 
@@ -7,8 +7,9 @@ interface TileProps {
   count: number
   label: string
   removeLabel: string
-  onAdd: () => void
-  onRemove: () => void
+  /** Called with the Item's id; pass the same function for every tile, so untouched tiles skip re-rendering. */
+  onAdd: (itemId: string) => void
+  onRemove: (itemId: string) => void
 }
 
 function buzz() {
@@ -19,7 +20,8 @@ function buzz() {
   }
 }
 
-export function Tile({ item, count, label, removeLabel, onAdd, onRemove }: TileProps) {
+/** Memoized: a tap changes one tile's count, and only that tile should re-render. */
+export const Tile = memo(function Tile({ item, count, label, removeLabel, onAdd, onRemove }: TileProps) {
   /** The emoji's main colour for the tile's gradient (#83); null keeps the plain tile. */
   const colour = useMemo(() => emojiColour(item.emoji), [item.emoji])
   const className = ['tile', colour && 'has-colour', count > 0 && 'has-count'].filter(Boolean).join(' ')
@@ -31,7 +33,7 @@ export function Tile({ item, count, label, removeLabel, onAdd, onRemove }: TileP
         aria-label={label}
         onClick={() => {
           buzz()
-          onAdd()
+          onAdd(item.id)
         }}
       >
         <span className="tile-emoji" aria-hidden="true">
@@ -48,7 +50,7 @@ export function Tile({ item, count, label, removeLabel, onAdd, onRemove }: TileP
             aria-label={removeLabel}
             onClick={() => {
               buzz()
-              onRemove()
+              onRemove(item.id)
             }}
           >
             <span aria-hidden="true">−</span>
@@ -61,4 +63,4 @@ export function Tile({ item, count, label, removeLabel, onAdd, onRemove }: TileP
       )}
     </div>
   )
-}
+})
