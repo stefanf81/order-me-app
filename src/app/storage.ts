@@ -6,6 +6,7 @@ import type { ShowOrder } from '../show/showOrder.ts'
 import { emptyRound, type ComposingRound } from '../round/round.ts'
 import { DEFAULT_SETTINGS, type Settings } from '../settings/settings.ts'
 import type { Locale } from '../shared/i18n.ts'
+import { cleanCatalog, cleanHistory, cleanIds, cleanRound, cleanSettings, type Cleaned } from './validate.ts'
 
 /** The slice of the Web Storage API this module needs; window.localStorage satisfies it. */
 export interface KeyValueStore {
@@ -32,6 +33,8 @@ interface Seed {
 }
 
 const KEY = 'order-me'
+/** Where a saved state this version can't use is kept before the app starts fresh over it. */
+const BACKUP_KEY = 'order-me.unreadable'
 
 /** v1: Catalog + composing Round (#1). */
 interface StoredV1 {
@@ -79,16 +82,36 @@ export function isFirstLaunch(store: KeyValueStore): boolean {
 export function forgetAppState(store: KeyValueStore): void {
   try {
     store.removeItem(KEY)
+    store.removeItem(BACKUP_KEY)
   } catch {
     // Storage blocked: there was nothing saved to forget.
+  }
+}
+
+/**
+ * Keeps what's stored under the app's key before a fresh start overwrites it. A save from a newer version (after a
+ * rollback) or a half-damaged one is still the Operator's History and Items; the next save would destroy it.
+ */
+function keepUnusable(store: KeyValueStore): void {
+  try {
+    const raw = store.getItem(KEY)
+    if (raw !== null) store.setItem(BACKUP_KEY, raw)
+  } catch {
+    // Storage blocked or full: nothing more can be done for the old data.
   }
 }
 
 /** Reads the saved app state, seeding and saving the starter Catalog on first launch. */
 export function loadAppState(store: KeyValueStore, seed: Seed): AppState {
   const saved = read(store)
-  if (saved) return upgrade(saved)
+  if (saved) {
+    const { value, dropped } = cleanStored(saved)
+    // Dropping a bad entry is the one time a usable save is changed behind the Operator's back: keep the original.
+    if (dropped) keepUnusable(store)
+    return upgrade(value)
+  }
 
+  keepUnusable(store)
   const fresh: AppState = {
     catalog: seedCatalog(seed.locale, seed.newId),
     round: emptyRound(),
@@ -109,6 +132,27 @@ export function saveAppState(store: KeyValueStore, state: AppState): void {
   } catch {
     // Nothing useful to do mid-round; the next successful save catches up.
   }
+}
+
+/**
+ * The save with every field checked (validate.ts): bad Items, placed Rounds, counts, pins and settings are dropped,
+ * so the screens only ever see well-formed data. Fields a version doesn't have yet are left alone.
+ */
+function cleanStored(saved: Stored): Cleaned<Stored> {
+  const fields: Record<string, unknown> = { ...saved }
+  const checks: Cleaned<unknown>[] = []
+  const check = <T>(name: string, cleaned: Cleaned<T>) => {
+    fields[name] = cleaned.value
+    checks.push(cleaned)
+  }
+  check('catalog', cleanCatalog(saved.catalog))
+  check('round', cleanRound(saved.round))
+  if (saved.version >= 2) check('history', cleanHistory(fields.history))
+  if (saved.version >= 3) check('settings', cleanSettings(fields.settings, DEFAULT_SETTINGS))
+  if (saved.version >= 4) check('pins', cleanIds(fields.pins))
+  if (saved.version >= 6) check('showOrder', cleanIds(fields.showOrder))
+  const dropped = checks.some((c) => c.dropped)
+  return { value: dropped ? (fields as unknown as Stored) : saved, dropped }
 }
 
 function upgrade(saved: Stored): AppState {

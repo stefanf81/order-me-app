@@ -456,6 +456,29 @@ button {
   text-align: center;
 }
 
+/* The screen shown when the app crashes (ErrorBoundary). */
+.crash {
+  min-height: 100dvh;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.crash h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.crash p {
+  max-width: 28rem;
+  margin: 0;
+  color: var(--text-muted);
+}
+
 /* ---------- buttons ---------- */
 .btn {
   min-height: 44px;

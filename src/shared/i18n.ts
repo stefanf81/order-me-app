@@ -131,6 +131,9 @@ export interface Messages {
   resetAppConfirm: string
   reset: string
   resetOffline: string
+  crashTitle: string
+  crashBody: string
+  crashReload: string
 }
 
 export const messages: Record<Locale, Messages> = {
@@ -249,6 +252,9 @@ export const messages: Record<Locale, Messages> = {
       'Reset the app to how it was first installed? This deletes your Items, pins, the Round, all History and your settings, and loads the newest version.',
     reset: 'Reset',
     resetOffline: 'No connection. Resetting needs internet to load the newest version.',
+    crashTitle: 'Something went wrong',
+    crashBody: 'The app hit an unexpected error. Your Round and Items are saved on this phone.',
+    crashReload: 'Reload',
   },
   nl: {
     appName: 'Dit rondje is van mij',
@@ -366,5 +372,8 @@ export const messages: Record<Locale, Messages> = {
       'De app terugzetten zoals bij de installatie? Je items, vastgezette items, het rondje, de hele geschiedenis en je instellingen worden gewist, en de nieuwste versie wordt geladen.',
     reset: 'Resetten',
     resetOffline: 'Geen verbinding. Om te resetten is internet nodig voor de nieuwste versie.',
+    crashTitle: 'Er ging iets mis',
+    crashBody: 'De app liep tegen een onverwachte fout aan. Je Rondje en Items staan veilig op deze telefoon.',
+    crashReload: 'Opnieuw laden',
   },
 }
