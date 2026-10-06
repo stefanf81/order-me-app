@@ -24,6 +24,7 @@ dist-ssr
 *.sw?
 test-results
 playwright-report
+coverage
 
 # Agent skills: installed locally per developer, not part of the app
 .agents/skills/
