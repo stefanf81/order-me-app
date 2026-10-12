@@ -64,6 +64,9 @@ export default defineConfig({
       // and offers to reload (app/updates.ts); the next launch after a deploy gets the new version anyway.
       injectRegister: 'script-defer',
       registerType: 'autoUpdate',
+      // The SVG favicon and the Apple touch icon aren't manifest icons, so name them; the manifest's own icons
+      // (192, 512, maskable) are added on their own (includeManifestIcons). They are deliberately precached: an
+      // install done with no network still gets every icon.
       includeAssets: ['icons/icon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
         id: BASE,
@@ -84,7 +87,10 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
+        // Only the built app shell. The icons arrive through includeAssets/includeManifestIcons and the web app
+        // manifest is added by the plugin itself, so listing png/svg/webmanifest here too would precache the same
+        // file twice: 16 entries over 10 files.
+        globPatterns: ['**/*.{js,css,html}'],
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,

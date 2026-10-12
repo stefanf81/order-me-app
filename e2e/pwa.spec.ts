@@ -68,6 +68,37 @@ test('Chrome finds and parses the manifest without errors, and a service worker 
   expect(await page.evaluate(() => navigator.serviceWorker.controller?.scriptURL)).toMatch(/\/order-me-app\/sw\.js$/)
 })
 
+/**
+ * The service worker's precache manifest lists every file the app shell needs. Workbox's own runtime and sw.js are
+ * loaded separately, so they are not in it.
+ */
+async function precacheUrls(page: Page) {
+  const response = await page.request.get(new URL('sw.js', page.url()).href)
+  expect(response.ok()).toBe(true)
+  const sw = await response.text()
+  return [...sw.matchAll(/\{url:"([^"]+)",revision:(?:"[^"]*"|null)\}/g)].map((m) => m[1])
+}
+
+/**
+ * Each file must appear exactly once. vite-plugin-pwa adds the manifest's own icons and the web app manifest itself
+ * on top of workbox.globPatterns; naming the same files in globPatterns too precached them twice, which is harmless
+ * but makes the manifest misleading and inflates sw.js.
+ */
+test('the precache manifest lists each file once, and covers the app shell', async ({ page }) => {
+  const urls = await precacheUrls(page)
+
+  expect(urls.length).toBe(new Set(urls).size)
+
+  const app = urls.filter((u) => u.startsWith('assets/')).map((u) => u.split('/').pop()!)
+  expect(app.some((f) => f.endsWith('.js'))).toBe(true)
+  expect(app.some((f) => f.endsWith('.css'))).toBe(true)
+  expect(urls).toContain('index.html')
+  expect(urls).toContain('manifest.webmanifest')
+  // Kept on purpose, so an install done offline still has every icon.
+  expect(urls).toContain('icons/icon-192.png')
+  expect(urls).toContain('icons/apple-touch-icon.png')
+})
+
 test('after the first visit it loads and works with no network', async ({ page, context, browserName }) => {
   // Playwright's WebKit throws "internal error" reloading an offline page a service worker controls; real Safari
   // serves it from the cache. The app's own offline path is the same on both engines, so it is covered on Chromium.
