@@ -124,8 +124,8 @@ npm run build && npm run preview   # the production build, as deployed
 - Bump it in every PR that changes the app: minor for a feature, patch for a fix, major for a big milestone. Docs- or CI-only changes don't bump it. Always bump with `npm version`, which changes only the app's own version in `package.json` and `package-lock.json` (a text replace can also hit a dependency that happens to have the same version, and CI's `npm ci` then refuses the lock file):
 
   ```sh
-  # e.g. the next feature release after 5.2.0
-  npm version 5.3.0 --no-git-tag-version
+  # e.g. the next feature release after 5.3.0
+  npm version 5.4.0 --no-git-tag-version
   npm ci   # check the lock file still installs
   ```
 - The build number is the GitHub Actions run number of the deploy (`dev` locally) and the date is the build date; both are filled in at build time (`__BUILD__` in `vite.config.ts`).
