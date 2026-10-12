@@ -20,10 +20,13 @@ const THEME_SCRIPT = readFileSync(new URL('./src/settings/themeBeforePaint.js', 
 
 /**
  * Inlines the theme script into the page's <head> and, in the build, adds a Content-Security-Policy (GitHub Pages
- * can't send headers): only the app's own scripts, styles and connections, so injected markup could never run code
- * or send data elsewhere. It starts from `default-src 'none'`, so a resource type nobody thought about is refused
- * rather than quietly allowed. The inline theme script is allowed by its hash. No policy on the dev server: it
- * injects inline styles.
+ * can't send headers): the app's own scripts, styles and connections, `data:` images for the QR codes, and nothing
+ * else. It starts from `default-src 'none'`, so a resource type nobody thought about is refused rather than quietly
+ * allowed. The inline theme script is allowed by its hash. `e2e/security.spec.ts` pins the policy and checks that an
+ * inline script it does not name really is blocked.
+ *
+ * This is defence in depth, not a guarantee: `'self'` covers the whole GitHub Pages origin, which is shared with
+ * other projects (see docs/security.md). No policy on the dev server: it injects inline styles.
  */
 function themeScriptAndPolicy(): Plugin {
   let build = false
@@ -37,8 +40,8 @@ function themeScriptAndPolicy(): Plugin {
       if (!build) return tags
       const themeHash = `'sha256-${createHash('sha256').update(THEME_SCRIPT).digest('base64')}'`
       const policy = [
-        // Nothing is allowed unless it is named below. The app loads no third-party code, makes no cross-origin
-        // request and uses system fonts, so every resource type is spelled out rather than inherited.
+        // Nothing is allowed unless it is named below: no third-party code, no cross-origin request, system fonts
+        // only, so every resource type is spelled out rather than inherited.
         "default-src 'none'",
         `script-src 'self' ${themeHash}`,
         "style-src 'self'",

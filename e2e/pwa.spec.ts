@@ -69,34 +69,49 @@ test('Chrome finds and parses the manifest without errors, and a service worker 
 })
 
 /**
- * The service worker's precache manifest lists every file the app shell needs. Workbox's own runtime and sw.js are
- * loaded separately, so they are not in it.
+ * Every precached path, as the service worker stores them: relative to the app's base. A leading '/order-me-app/'
+ * is stripped so the test still matches if Workbox switches to absolute URLs.
  */
-async function precacheUrls(page: Page) {
-  const response = await page.request.get(new URL('sw.js', page.url()).href)
-  expect(response.ok()).toBe(true)
-  const sw = await response.text()
-  return [...sw.matchAll(/\{url:"([^"]+)",revision:(?:"[^"]*"|null)\}/g)].map((m) => m[1])
+function precachePaths(sw: string) {
+  return [...sw.matchAll(/\{url:"([^"]+)",revision:(?:"[^"]*"|null)\}/g)].map(([, url]) =>
+    url.replace(/^\/order-me-app\//, ''),
+  )
 }
 
 /**
- * Each file must appear exactly once. vite-plugin-pwa adds the manifest's own icons and the web app manifest itself
- * on top of workbox.globPatterns; naming the same files in globPatterns too precached them twice, which is harmless
- * but makes the manifest misleading and inflates sw.js.
+ * Each file appears exactly once, and the set is exactly the app shell plus every icon the page and manifest point
+ * at. vite-plugin-pwa adds the manifest's icons and the web app manifest itself on top of workbox.globPatterns, so
+ * naming the same files in globPatterns too listed them twice (harmless, but a misleading manifest).
+ *
+ * The icons are read from the manifest and the <link> tags rather than hardcoded, so dropping one is caught.
  */
-test('the precache manifest lists each file once, and covers the app shell', async ({ page }) => {
-  const urls = await precacheUrls(page)
+test('the precache manifest lists each file once: the app shell and every icon', async ({ page }) => {
+  const response = await page.request.get(new URL('sw.js', page.url()).href)
+  expect(response.ok()).toBe(true)
+  const paths = precachePaths(await response.text())
 
-  expect(urls.length).toBe(new Set(urls).size)
+  expect(paths.length).toBe(new Set(paths).size)
 
-  const app = urls.filter((u) => u.startsWith('assets/')).map((u) => u.split('/').pop()!)
-  expect(app.some((f) => f.endsWith('.js'))).toBe(true)
-  expect(app.some((f) => f.endsWith('.css'))).toBe(true)
-  expect(urls).toContain('index.html')
-  expect(urls).toContain('manifest.webmanifest')
-  // Kept on purpose, so an install done offline still has every icon.
-  expect(urls).toContain('icons/icon-192.png')
-  expect(urls).toContain('icons/apple-touch-icon.png')
+  const href = async (selector: string) =>
+    new URL((await page.locator(selector).getAttribute('href'))!, page.url()).pathname.replace(/^\/order-me-app\//, '')
+  const manifestHref = await page.locator('link[rel="manifest"]').getAttribute('href')
+  const manifest = await (await page.request.get(new URL(manifestHref!, page.url()).href)).json()
+
+  const icons = [
+    ...manifest.icons.map((icon: { src: string }) => icon.src),
+    await href('link[rel="icon"]'),
+    await href('link[rel="apple-touch-icon"]'),
+  ]
+  const byName = (a: string, b: string) => a.localeCompare(b)
+  // The app shell: the page, the web app manifest, the script that registers the service worker, and the icons.
+  // The assets are named by their hash, so those are compared by extension rather than by name.
+  expect(paths.filter((p) => !p.startsWith('assets/')).sort(byName)).toEqual(
+    ['index.html', 'manifest.webmanifest', 'registerSW.js', ...icons].sort(byName),
+  )
+  expect(paths.filter((p) => p.startsWith('assets/')).map((p) => p.slice(p.lastIndexOf('.'))).sort(byName)).toEqual([
+    '.css',
+    '.js',
+  ])
 })
 
 test('after the first visit it loads and works with no network', async ({ page, context, browserName }) => {

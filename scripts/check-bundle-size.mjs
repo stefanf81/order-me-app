@@ -1,19 +1,20 @@
 // Two budgets on the built app. Run after `npm run build`.
 //
-//  1. The app code: the JS and CSS in dist/assets. A phone on bad bar Wi-Fi downloads these once, then runs from
-//     the service worker's cache.
-//  2. Everything: the whole of dist/, which is what a first visit actually transfers (the app code, the icons, the
-//     web app manifest, the service worker and the Workbox runtime it loads separately). The icons are the reason
-//     this second budget exists: they are not in dist/assets, and PNG barely compresses, so they are most of a
-//     first visit.
+//  1. The app code: the JS and CSS in dist/assets.
+//  2. Everything: the whole of dist/, which adds the icons, the web app manifest, the service worker and the
+//     Workbox runtime it loads separately. The icons are why this second budget exists: they are not in
+//     dist/assets, and PNG barely compresses, so they are the larger half of the precached build.
 //
-// Sizes are gzip, which is what GitHub Pages serves (it does not do brotli). A budget is not a measured transfer:
-// HTTP/2 framing and per-request headers are not counted here. Raise a budget on purpose, in the same change that
-// adds the weight.
+// Both are compressed sizes of the built files, which is the right thing to cap: they are what a first visit
+// downloads once the service worker has cached the app. It is not a measurement of what any particular phone
+// transfers, and it does not model HTTP/2 framing, per-request headers or how much a repeat visit reuses.
+// GitHub Pages is asked for gzip, which is what is measured here.
+//
+// Raise a budget on purpose, in the same change that adds the weight.
 import { readdirSync, readFileSync } from 'node:fs'
 import { gzipSync } from 'node:zlib'
 
-const ASSET_BUDGET_KB = { js: 110, css: 8 } // gzip; today about 93.5 and 4.3
+const ASSET_BUDGET_KB = { js: 110, css: 8 } // gzip; today about 90.3 and 4.3
 const TOTAL_BUDGET_KB = 300 // gzip; today about 283.5
 
 const assets = new URL('../dist/assets/', import.meta.url)

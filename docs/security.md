@@ -23,7 +23,9 @@ When a saved state can't be used (unknown version after a rollback, unreadable J
 
 ## Content-Security-Policy
 
-GitHub Pages can't send headers, so `vite.config.ts` adds a `<meta>` policy to the build: only the app's own scripts, styles and connections, `data:` images (the QR codes), no objects, no `<base>`, no forms. The one inline script (the theme, applied before first paint) is allowed by its hash. `e2e/security.spec.ts` fails if the policy blocks anything the app itself does.
+GitHub Pages can't send headers, so `vite.config.ts` adds a `<meta>` policy to the build. It starts from `default-src 'none'`, so anything not named is refused, and names only what the app uses: its own scripts and styles, `data:` images (the QR codes), the manifest, the service worker, and the one same-origin request Reset app makes to check whether the host answers. Fonts, media, frames, objects, `<base>` and form submission are all `none`. The one inline script (the theme, applied before first paint) is allowed by its hash.
+
+`e2e/security.spec.ts` checks three things: that the policy blocks nothing the app itself does, that it contains exactly the expected directives (no repeats, no extras), and that an inline script it does not name is genuinely blocked rather than merely absent from the list. This is defence in depth, not a guarantee — `'self'` covers the whole shared GitHub Pages origin (below).
 
 What a `<meta>` policy can't do: `frame-ancestors` is ignored there, so the page can be framed by another site. Fixing that needs response headers, which means hosting that can send them. Accepted for now: there are no sessions or credentials to steal, and the worst a framed tap can reach is an in-app action with its own confirm or Undo.
 
@@ -49,7 +51,7 @@ When a save fails (storage blocked or full), the app says so once with a toast i
 - **actionlint**: lints the workflow files in `ci.yml`.
 - **Actions pinned to commits**, with Dependabot proposing updates monthly.
 - **Accessibility** (`e2e/a11y.spec.ts`): axe-core on all four pages in both themes, failing on serious or critical violations.
-- **Budgets**: unit-test coverage floor (`vite.config.ts`) and gzip size of the JS and CSS (`scripts/check-bundle-size.mjs`).
+- **Budgets**: a unit-test coverage floor (`vite.config.ts`), and gzip size of both the JS and CSS in `dist/assets` and the whole of `dist/` (`scripts/check-bundle-size.mjs`). The second exists because the icons are most of the precached build and are not in `dist/assets`. Both are compressed sizes of the built files, not a measured transfer.
 
 ## Not applicable here
 
