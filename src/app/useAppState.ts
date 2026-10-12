@@ -8,6 +8,7 @@ import { add, clearWithUndo, remove, withNote, type ComposingRound, type RoundNo
 import type { ThemeSetting } from '../settings/settings.ts'
 import type { LanguageSetting, Locale } from '../shared/i18n.ts'
 import { resetApp } from '../settings/reset.ts'
+import { newId } from '../shared/id.ts'
 import {
   forgetAppState,
   isFirstLaunch,
@@ -38,7 +39,7 @@ export function useAppState(seedLocale: Locale) {
   /** Read before the first load saves the starter Catalog: a shared link opened now replaces it without asking. */
   const [firstLaunch] = useState(() => isFirstLaunch(store))
   const [state, setState] = useState<AppState>(() =>
-    loadAppState(store, { locale: seedLocale, newId: () => crypto.randomUUID() }),
+    loadAppState(store, { locale: seedLocale, newId }),
   )
 
   /** True once a save failed (storage blocked or full): the app says so once, rather than silently not saving. */
@@ -93,7 +94,7 @@ export function useAppState(seedLocale: Locale) {
       deleteRound: (roundId: string) => update((s) => ({ history: deletePlacedRound(s.history, roundId) })),
       /** Adds a new Item to the Catalog, and optionally straight into the composing Round ("+ New" tile). */
       createItem: (draft: ItemDraft, options: { addToRound?: boolean } = {}) => {
-        const id = crypto.randomUUID()
+        const id = newId()
         update((s) => ({
           catalog: addToCatalog(s.catalog, draft, id),
           round: options.addToRound ? add(s.round, id) : s.round,
@@ -122,7 +123,7 @@ export function useAppState(seedLocale: Locale) {
       receiveRound: (shared: SharedRound) => {
         let undo: ((s: AppState) => Partial<AppState>) | undefined
         update((s) => {
-          const received = receiveRound(s, shared, () => crypto.randomUUID())
+          const received = receiveRound(s, shared, newId)
           undo = received.undo
           return received.next
         })
@@ -132,7 +133,7 @@ export function useAppState(seedLocale: Locale) {
       /** Replaces the Catalog with a Shared Catalog: fresh ids, empty Round, no pins, History kept. */
       replaceCatalog: (items: SharedItem[]) => {
         // New ids: a Show order from before points at nothing any more.
-        update(() => ({ ...replaceCatalog(items, () => crypto.randomUUID()), showOrder: [] }))
+        update(() => ({ ...replaceCatalog(items, newId), showOrder: [] }))
         setPlacements((n) => n + 1)
       },
       setLanguage: (language: LanguageSetting) => update((s) => ({ settings: { ...s.settings, language } })),
@@ -156,7 +157,7 @@ export function useAppState(seedLocale: Locale) {
 
   /** Places the composing Round and returns a function that undoes exactly that placement. */
   const placeRound = (sections: Sections) => {
-    const meta = { id: crypto.randomUUID(), placedAt: new Date().toISOString() }
+    const meta = { id: newId(), placedAt: new Date().toISOString() }
     // Set inside the updater, which has run by the time anyone can tap Undo (the toast appears after the next render).
     let undo: ReturnType<typeof markOrdered>['undo'] | undefined
     // Functional update: a second activation can never compute from a stale state.

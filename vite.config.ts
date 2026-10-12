@@ -111,6 +111,23 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        // Splits React and its scheduler into a separate vendor chunk. When an update only changes app code,
+        // the client re-downloads only the ~25 kB app chunk; the ~66 kB React chunk stays cached by the service worker.
+        manualChunks: (id) => {
+          if (
+            id.includes('node_modules/react/') ||
+            id.includes('node_modules/react-dom/') ||
+            id.includes('node_modules/scheduler/')
+          ) {
+            return 'react'
+          }
+        },
+      },
+    },
+  },
   test: {
     include: ['src/**/*.test.ts'],
     coverage: {

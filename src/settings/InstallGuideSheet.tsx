@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import type { Messages } from '../shared/i18n.ts'
-import { useFocusTrap } from '../shared/ui/useFocusTrap.ts'
+import { Sheet } from '../shared/ui/Sheet.tsx'
 
 interface InstallGuideSheetProps {
   t: Messages
@@ -19,37 +19,23 @@ const SHARE_ICON = (
  * prompt the app could open itself.
  */
 export function InstallGuideSheet({ t, onClose }: InstallGuideSheetProps) {
-  const boxRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
-  useFocusTrap(boxRef, closeRef)
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
 
   return (
-    <div className="sheet-scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={boxRef} className="sheet" role="dialog" aria-modal="true" aria-labelledby="install-title" tabIndex={-1}>
-        <div className="sheet-grab" aria-hidden="true" />
-        <h2 className="sheet-title" id="install-title">
-          {t.addToHome}
-        </h2>
-        <ol className="install-steps">
-          {t.installSteps.map((step, i) => (
-            <li key={i}>
-              {i === 0 && <span className="install-share">{SHARE_ICON}</span>}
-              {step}
-            </li>
-          ))}
-        </ol>
-        <div className="share-actions">
-          <button ref={closeRef} type="button" className="btn btn-neutral" onClick={onClose}>
-            {t.close}
-          </button>
-        </div>
+    <Sheet title={t.addToHome} titleId="install-title" initialFocusRef={closeRef} onClose={onClose}>
+      <ol className="install-steps">
+        {t.installSteps.map((step, i) => (
+          <li key={i}>
+            {i === 0 && <span className="install-share">{SHARE_ICON}</span>}
+            {step}
+          </li>
+        ))}
+      </ol>
+      <div className="share-actions">
+        <button ref={closeRef} type="button" className="btn btn-neutral" onClick={onClose}>
+          {t.close}
+        </button>
       </div>
-    </div>
+    </Sheet>
   )
 }

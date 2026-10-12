@@ -108,8 +108,10 @@ test('the precache manifest lists each file once: the app shell and every icon',
   expect(paths.filter((p) => !p.startsWith('assets/')).sort(byName)).toEqual(
     ['index.html', 'manifest.webmanifest', 'registerSW.js', ...icons].sort(byName),
   )
+  // The assets in assets/: one CSS stylesheet, and two JS chunks (the app shell and the React vendor chunk).
   expect(paths.filter((p) => p.startsWith('assets/')).map((p) => p.slice(p.lastIndexOf('.'))).sort(byName)).toEqual([
     '.css',
+    '.js',
     '.js',
   ])
 })

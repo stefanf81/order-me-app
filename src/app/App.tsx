@@ -55,14 +55,15 @@ export function App() {
    * The newest is shown; dismissing it brings back the one before, whose Undo still works on the current state.
    */
   const [toasts, setToasts] = useState<ToastMessage[]>([])
-  const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
+  const [confirmations, setConfirmations] = useState<Confirmation[]>([])
   const overlays = useMemo<Overlays>(() => {
     let nextId = 0
     return {
-      confirm: setConfirmation,
+      confirm: (c) => setConfirmations((queue) => [...queue, c]),
       notify: (text, action) => setToasts((queue) => [...queue, { id: ++nextId, text, action }]),
     }
   }, [])
+  const currentConfirmation = confirmations[0]
   // Say it once: every later failed save (each tap) would just repeat the same message.
   const warnedAboutSaving = useRef(false)
   useEffect(() => {
@@ -75,7 +76,7 @@ export function App() {
   const { ready: updateReady, update } = useUpdate()
   /** After Later the pop-up stays away; Settings then offers the update next to the version. */
   const [updateLater, setUpdateLater] = useState(false)
-  const overlayOpen = sheet !== null || sharing !== null || installGuide || confirmation !== null
+  const overlayOpen = sheet !== null || sharing !== null || installGuide || currentConfirmation !== undefined
   /** The update pop-up, never over an open sheet or dialog: it waits until the Operator is done there. */
   const offerUpdate = updateReady && !updateLater && !overlayOpen
 
@@ -97,7 +98,7 @@ export function App() {
   const closeSharing = useCallback(() => setSharing(null), [])
   const closeInstallGuide = useCallback(() => setInstallGuide(false), [])
   const closeToast = useCallback(() => setToasts((stack) => stack.slice(0, -1)), [])
-  const closeConfirmation = useCallback(() => setConfirmation(null), [])
+  const closeConfirmation = useCallback(() => setConfirmations((queue) => queue.slice(1)), [])
   const toRound = useCallback(() => setPage(ROUND_PAGE), [])
   const dateLocale = formattingLocale(locale, navigator.language)
 
@@ -187,13 +188,13 @@ export function App() {
 
       {sheet && (
         // The sheet stays open under a delete confirmation, but must not take taps while it is.
-        <div inert={confirmation !== null}>
+        <div inert={currentConfirmation !== undefined}>
           <ItemSheet {...sheet} t={t} actions={actions} overlays={overlays} onClose={closeSheet} />
         </div>
       )}
 
       {sharing && (
-        <div inert={confirmation !== null}>
+        <div inert={currentConfirmation !== undefined}>
           {sharing === 'items' ? (
             <ShareItemsSheet catalog={catalog} t={t} onClose={closeSharing} />
           ) : (
@@ -217,7 +218,7 @@ export function App() {
         />
       )}
 
-      {confirmation && <ConfirmDialog {...confirmation} cancelLabel={t.cancel} onClose={closeConfirmation} />}
+      {currentConfirmation && <ConfirmDialog {...currentConfirmation} cancelLabel={t.cancel} onClose={closeConfirmation} />}
     </>
   )
 }

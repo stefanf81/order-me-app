@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import type { Messages } from '../shared/i18n.ts'
 import type { Overlays } from '../shared/ui/overlays.ts'
 import type { AppActions } from '../app/useAppState.ts'
-import { useFocusTrap } from '../shared/ui/useFocusTrap.ts'
+import { Sheet } from '../shared/ui/Sheet.tsx'
 import { checkDraft, type Category, type DraftProblem, type Item, type ItemDraft } from './catalog.ts'
 import { EMOJI_CHOICES } from './emoji.ts'
 
@@ -29,16 +29,7 @@ export function ItemSheet({ item, forRound, t, actions, overlays, onClose }: Ite
   const [picked, setPicked] = useState(item && isChoice(item.emoji) ? item.emoji : item ? '' : EMOJI_CHOICES[0])
   const [typed, setTyped] = useState(item && !isChoice(item.emoji) ? item.emoji : '')
   const [problem, setProblem] = useState<DraftProblem | null>(null)
-  const boxRef = useRef<HTMLFormElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
-  // Only adding focuses the name field (and opens the keyboard); editing starts on the sheet itself.
-  useFocusTrap(boxRef, item ? undefined : nameRef)
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
 
   const save = (draft: ItemDraft) => {
     if (item) actions.updateItem(item.id, draft)
@@ -61,24 +52,15 @@ export function ItemSheet({ item, forRound, t, actions, overlays, onClose }: Ite
 
   const title = item ? t.editItem : forRound ? t.newItem : t.addItem
   return (
-    <div className="sheet-scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <form
-        ref={boxRef}
-        className="sheet"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="sheet-title"
-        tabIndex={-1}
-        onSubmit={submit}
-        noValidate
-      >
-        <div className="sheet-grab" aria-hidden="true" />
-        <h2 className="sheet-title" id="sheet-title">
-          {title}
-        </h2>
-
-        <div className="field">
-          <label htmlFor="item-name">{t.name}</label>
+    <Sheet
+      title={title}
+      titleId="sheet-title"
+      initialFocusRef={item ? undefined : nameRef}
+      onSubmit={submit}
+      onClose={onClose}
+    >
+      <div className="field">
+        <label htmlFor="item-name">{t.name}</label>
           <input
             ref={nameRef}
             id="item-name"
@@ -168,7 +150,6 @@ export function ItemSheet({ item, forRound, t, actions, overlays, onClose }: Ite
             {item ? t.save : forRound ? t.addToRound : t.add}
           </button>
         </div>
-      </form>
-    </div>
+    </Sheet>
   )
 }

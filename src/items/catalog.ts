@@ -48,12 +48,14 @@ export interface ItemDraft {
 
 export type DraftProblem = 'nameRequired' | 'emojiRequired'
 
+const emojiSegmenter = new Intl.Segmenter()
+
 /** Tidies a draft (trimmed name, a single emoji) or says what is missing. */
 export function checkDraft(draft: ItemDraft): { ok: true; value: ItemDraft } | { ok: false; problem: DraftProblem } {
   const name = draft.name.trim().replace(/\s+/g, ' ')
   if (!name) return { ok: false, problem: 'nameRequired' }
   // First grapheme, so multi-part emoji such as 👩‍🍳 survive intact.
-  const [first] = new Intl.Segmenter().segment(draft.emoji.trim())
+  const [first] = emojiSegmenter.segment(draft.emoji.trim())
   if (!first) return { ok: false, problem: 'emojiRequired' }
   return { ok: true, value: { name, category: draft.category, emoji: first.segment } }
 }

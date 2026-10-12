@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { qrCode } from './qr.ts'
-import { useFocusTrap } from './useFocusTrap.ts'
+import { Sheet } from './Sheet.tsx'
 import type { Messages } from '../i18n.ts'
 
 interface QrSheetProps {
@@ -31,16 +31,8 @@ export function QrSheet({ title, hint, link, failed = false, alt, children, t, o
   const code = useMemo(() => (link ? qrCode(link) : null), [link])
   const [copied, setCopied] = useState<'copied' | 'failed' | null>(null)
   const resetTimer = useRef<number>(undefined)
-  const boxRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
-  useFocusTrap(boxRef, closeRef)
   useEffect(() => () => window.clearTimeout(resetTimer.current), [])
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
 
   const copyLink = async () => {
     if (!link) return
@@ -58,39 +50,32 @@ export function QrSheet({ title, hint, link, failed = false, alt, children, t, o
   const copyLabel = copied === 'copied' ? `✓ ${t.copiedShort}` : copied === 'failed' ? t.copyFailed : t.copyLink
 
   return (
-    <div className="sheet-scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={boxRef} className="sheet" role="dialog" aria-modal="true" aria-labelledby="qr-sheet-title" tabIndex={-1}>
-        <div className="sheet-grab" aria-hidden="true" />
-        <h2 className="sheet-title" id="qr-sheet-title">
-          {title}
-        </h2>
+    <Sheet title={title} titleId="qr-sheet-title" initialFocusRef={closeRef} onClose={onClose}>
+      {link &&
+        (code ? (
+          <>
+            <img className="share-qr" src={code.toDataURL({ ...QR_COLOURS, scale: 4 })} alt={alt} />
+            <p className="share-hint">{hint}</p>
+          </>
+        ) : (
+          <p className="share-hint">{t.tooBigForQr}</p>
+        ))}
+      {failed && <p className="share-hint">{t.shareFailed}</p>}
 
-        {link &&
-          (code ? (
-            <>
-              <img className="share-qr" src={code.toDataURL({ ...QR_COLOURS, scale: 4 })} alt={alt} />
-              <p className="share-hint">{hint}</p>
-            </>
-          ) : (
-            <p className="share-hint">{t.tooBigForQr}</p>
-          ))}
-        {failed && <p className="share-hint">{t.shareFailed}</p>}
-
-        <div className="share-actions">
-          {/* void: the copy handles its own failure and reports it in the label, so the promise is fire-and-forget. */}
-          <button type="button" className="btn btn-outline" disabled={!link} onClick={() => void copyLink()}>
-            {copyLabel}
-          </button>
-          {children}
-          <button ref={closeRef} type="button" className="btn btn-neutral" onClick={onClose}>
-            {t.close}
-          </button>
-        </div>
-        {/* A changing button label isn't announced on its own. */}
-        <p className="visually-hidden" aria-live="polite">
-          {copied === 'copied' ? t.copied : copied === 'failed' ? t.copyFailed : ''}
-        </p>
+      <div className="share-actions">
+        {/* void: the copy handles its own failure and reports it in the label, so the promise is fire-and-forget. */}
+        <button type="button" className="btn btn-outline" disabled={!link} onClick={() => void copyLink()}>
+          {copyLabel}
+        </button>
+        {children}
+        <button ref={closeRef} type="button" className="btn btn-neutral" onClick={onClose}>
+          {t.close}
+        </button>
       </div>
-    </div>
+      {/* A changing button label isn't announced on its own. */}
+      <p className="visually-hidden" aria-live="polite">
+        {copied === 'copied' ? t.copied : copied === 'failed' ? t.copyFailed : ''}
+      </p>
+    </Sheet>
   )
 }
