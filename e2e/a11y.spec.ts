@@ -33,5 +33,49 @@ for (const theme of ['dark', 'light'] as const) {
       const serious = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
       expect(serious.map((v) => `${name}: ${v.id} (${v.nodes.length}) ${v.help}`)).toEqual([])
     }
+
+    // --- Overlays (ItemSheet, QrSheet, ConfirmDialog) ---
+    // 1. ItemSheet on Round page
+    await nav.getByRole('button', { name: 'Round' }).tap()
+    await page.getByRole('button', { name: 'New Item' }).tap()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    // Wait for the slide-up (240ms) and fade-in (120ms) animations to settle before scanning contrast.
+    await page.waitForTimeout(300)
+    const itemSheetAxe = await new AxeBuilder({ page }).analyze()
+    expect(
+      itemSheetAxe.violations
+        .filter((v) => v.impact === 'serious' || v.impact === 'critical')
+        .map((v) => `ItemSheet: ${v.id} ${v.help}`),
+    ).toEqual([])
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+
+    // 2. QrSheet on Show page
+    await nav.getByRole('button', { name: 'Show' }).tap()
+    await page.getByRole('button', { name: 'Share as QR code' }).tap()
+    await expect(page.getByRole('dialog', { name: 'Share Round' })).toBeVisible()
+    await page.waitForTimeout(300)
+    const qrSheetAxe = await new AxeBuilder({ page }).analyze()
+    expect(
+      qrSheetAxe.violations
+        .filter((v) => v.impact === 'serious' || v.impact === 'critical')
+        .map((v) => `QrSheet: ${v.id} ${v.help}`),
+    ).toEqual([])
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+
+    // 3. ConfirmDialog on Settings page
+    await nav.getByRole('button', { name: 'Settings' }).tap()
+    await page.getByRole('region', { name: 'General' }).getByRole('button', { name: 'Reset app' }).tap()
+    await expect(page.getByRole('alertdialog')).toBeVisible()
+    await page.waitForTimeout(200)
+    const confirmAxe = await new AxeBuilder({ page }).analyze()
+    expect(
+      confirmAxe.violations
+        .filter((v) => v.impact === 'serious' || v.impact === 'critical')
+        .map((v) => `ConfirmDialog: ${v.id} ${v.help}`),
+    ).toEqual([])
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('alertdialog')).toHaveCount(0)
   })
 }

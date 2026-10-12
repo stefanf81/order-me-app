@@ -22,7 +22,7 @@ export const MAX_NOTE = { t: 10, r: 200 } as const
 /** Far beyond any real Round; a bigger count is a broken or crafted link. */
 export const MAX_COUNT = 999
 
-export interface SharedLine {
+interface SharedLine {
   item: SharedItem
   count: number
 }

@@ -2,7 +2,7 @@ import type { Catalog, Category, Sections } from '../items/catalog.ts'
 import { emptyRound, noteOf, roundLines, type ComposingRound, type RoundNote } from '../round/round.ts'
 
 /** One line of a placed Round: a frozen copy of the Item as it was (ADR-0001) plus its id, for Popularity only (ADR-0002). */
-export interface PlacedLine {
+interface PlacedLine {
   itemId: string
   name: string
   category: Category

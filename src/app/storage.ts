@@ -36,7 +36,7 @@ interface Seed {
 }
 
 /** The slow-changing state: Catalog, History, settings, pins and Show order. Rewritten only when one of them changes. */
-export const KEY = 'order-me'
+const KEY = 'order-me'
 /** The composing Round on its own: saved on every tap, so a tap never rewrites the Catalog or History. */
 export const ROUND_KEY = 'order-me.round'
 /** Where a save this version can't use is kept before the app starts fresh over it. */

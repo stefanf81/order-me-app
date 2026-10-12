@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-export interface Tab {
+interface Tab {
   /** What the tab shows, shortened where a full word doesn't fit a quarter of a phone (NL "Historiek"). */
   label: string
   /** The page's full name, for screen readers (NL "Geschiedenis"). */
